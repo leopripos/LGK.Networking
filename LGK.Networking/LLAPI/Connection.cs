@@ -31,11 +31,6 @@ namespace LGK.Networking.LLAPI
             get { return LastError; }
         }
 
-        internal Connection()
-        {
-
-        }
-
         internal Connection(int socketId, int connectionId, bool isConnected, NetworkError lastError)
         {
             SocketId = socketId;

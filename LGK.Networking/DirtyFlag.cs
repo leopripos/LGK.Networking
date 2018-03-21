@@ -5,7 +5,8 @@ namespace LGK.Networking
 {
     public static class DirtyFlag
     {
-        public const byte INCREMENTAL_SYNC = 0;
+        public const byte NONE = 0;
+
         public const byte INITIAL_SYNC = 1;
 
         public const byte ONE = 1 << 1;

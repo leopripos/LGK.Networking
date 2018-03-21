@@ -29,7 +29,7 @@ namespace LGK.Networking.LLAPI.Client
         private string m_ServerIp;
         private int m_ServerPort;
 
-        private Connection m_Connection = new Connection();
+        private Connection m_Connection;
 
         public event ClientEvent.ConnectingDelegate ConnectingEvent;
         public event ClientEvent.ConnectingFailedDelegate ConnectingFailedEvent;
@@ -42,7 +42,7 @@ namespace LGK.Networking.LLAPI.Client
             m_State = ConnectState.None;
             m_RecievedBuffer = new byte[config.BufferSize];
 
-            m_Connection.SocketId = NetworkTransport.INVALID_SOCKET;
+            m_Connection = new Connection(NetworkTransport.INVALID_SOCKET, NetworkTransport.INVALID_CONNECTION, false, NetworkError.None);
 
             m_ConnectionConfig = new ConnectionConfig();
             m_ConnectionConfig.ConnectTimeout = config.ConnectTimeout;
@@ -247,7 +247,7 @@ namespace LGK.Networking.LLAPI.Client
         {
             m_ServerIp = string.Empty;
             m_ServerPort = 0;
-            m_Connection = null;
+            m_Connection = new Connection(NetworkTransport.INVALID_SOCKET, NetworkTransport.INVALID_CONNECTION, false, NetworkError.None);
 
             InternalRemoveHost();
 
@@ -330,6 +330,9 @@ namespace LGK.Networking.LLAPI.Client
 
         void InternalRemoveHost()
         {
+            if (m_Connection.SocketId == NetworkTransport.INVALID_SOCKET)
+                return;
+
             UNET.NetworkTransport.RemoveHost(m_Connection.SocketId);
             m_Connection.SocketId = NetworkTransport.INVALID_SOCKET;
         }
