@@ -21,7 +21,6 @@ namespace LGK.Networking.Profiler
 
         private Color m_HelpColor;
         private Color m_SelectedColor;
-        private int m_SelectedIndex;
 
         public TraficChart(NetworkTraficBuffer incomingBuffer, Color incomingColor, NetworkTraficBuffer outgoingBuffer, Color outgointColor, Color helpColor, Color selectedColor)
         {
