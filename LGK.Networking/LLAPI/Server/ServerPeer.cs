@@ -5,19 +5,10 @@ using System;
 using System.Collections.Generic;
 using UNET = UnityEngine.Networking;
 
-#if NETWORK_PROFILER_ENABLED && UNITY_EDITOR
-using System.Text;
-using LGK.Networking.Profiler;
-#endif
-
 namespace LGK.Networking.LLAPI.Server
 {
     public class ServerPeer : IInternalServerPeer
     {
-#if NETWORK_PROFILER_ENABLED && UNITY_EDITOR
-        const string PROFILER_CATEGORY_PREFIX = "ServerPeer:";
-#endif
-
         private readonly byte[] m_RecievedBuffer = null;
         private readonly List<Connection> m_Connections;
 
@@ -78,8 +69,8 @@ namespace LGK.Networking.LLAPI.Server
 
             m_SocketId = UNET.NetworkTransport.AddHost(new SocketContract(m_ConnectionConfig, m_MaxConnection), m_Port, address);
 
-            if (IsActive)
-                ListenEvent?.Invoke();
+            if (IsActive && ListenEvent != null)
+                ListenEvent.Invoke();
 
             return this.IsActive;
         }
@@ -104,16 +95,22 @@ namespace LGK.Networking.LLAPI.Server
         public bool Send(IConnection conn, int channelId, byte[] buffer, int length)
         {
 #if NETWORK_DEBUGGER_ENABLED
-            UnityEngine.Debug.Log($"ServerPeer Outgoing : ConnectionId:{conn.ConnectionId}, Size:{length}");
+            var logMessage = new System.Text.StringBuilder("ServerPeer");
+            logMessage.Append(" Outgoing");
+            logMessage.Append(" ConnectionId:").Append(conn.ConnectionId);
+            logMessage.Append(" ChannelId:").Append(channelId);
+            logMessage.Append(" Size:").Append(length);
+
+            UnityEngine.Debug.Log(logMessage);
 #endif
 
             byte error;
             UNET.NetworkTransport.Send(m_SocketId, conn.ConnectionId, channelId, buffer, length, out error);
 
 #if NETWORK_PROFILER_ENABLED && UNITY_EDITOR
-            var profilerName = new StringBuilder(PROFILER_CATEGORY_PREFIX);
+            var profilerName = new System.Text.StringBuilder("ServerPeer");
             profilerName.Append(channelId);
-            NetworkProfiler.RecordChannelOutgoing(profilerName.ToString(), (ushort)length);
+            Profiler.NetworkProfiler.RecordChannelOutgoing(profilerName.ToString(), (ushort)length);
 #endif
 
             ((Connection)conn).LastError = (NetworkError)error;
@@ -191,8 +188,8 @@ namespace LGK.Networking.LLAPI.Server
 
             var success = UNET.NetworkTransport.RemoveHost(m_SocketId);
 
-            if (success)
-                ShutdownEvent?.Invoke();
+            if (success && ShutdownEvent != null)
+                ShutdownEvent.Invoke();
 
             m_SocketId = NetworkTransport.INVALID_SOCKET;
         }
@@ -210,7 +207,8 @@ namespace LGK.Networking.LLAPI.Server
             }
             m_Connections[connectionId] = connection;
 
-            ConnectedEvent?.Invoke(connection);
+            if(ConnectedEvent!= null)
+                ConnectedEvent.Invoke(connection);
         }
 
         void HandleData(int connectionId, int channelId, int receivedSize, NetworkError error)
@@ -222,16 +220,22 @@ namespace LGK.Networking.LLAPI.Server
             client.LastError = error;
 
 #if NETWORK_DEBUGGER_ENABLED
-            UnityEngine.Debug.Log($"ServerPeer Incoming : ConnectionId:{connectionId}, Size:{receivedSize}");
+            var logMessage = new System.Text.StringBuilder("ServerPeer");
+            logMessage.Append(" Incoming");
+            logMessage.Append(" ConnectionId:").Append(connectionId);
+            logMessage.Append(" ChannelId:").Append(channelId);
+            logMessage.Append(" Size:").Append(receivedSize);
+
+            UnityEngine.Debug.Log(logMessage);
 #endif
 
 #if NETWORK_PROFILER_ENABLED && UNITY_EDITOR
-            var profilerName = new StringBuilder(PROFILER_CATEGORY_PREFIX);
+            var profilerName = new System.Text.StringBuilder("ServerPeer");
             profilerName.Append(channelId);
-            NetworkProfiler.RecordChannelIncoming(profilerName.ToString(), (ushort)receivedSize);
+            Profiler.NetworkProfiler.RecordChannelIncoming(profilerName.ToString(), (ushort)receivedSize);
 #endif
-
-            DataEvent?.Invoke(client, channelId, m_RecievedBuffer, receivedSize);
+            if(DataEvent != null)
+                DataEvent.Invoke(client, channelId, m_RecievedBuffer, receivedSize);
         }
 
         void HandleDisconnect(int connectionId, NetworkError error)
@@ -260,7 +264,8 @@ namespace LGK.Networking.LLAPI.Server
 
             conn.IsConnected = false;
 
-            DisconnectedEvent?.Invoke(conn);
+            if(DisconnectedEvent!=null)
+                DisconnectedEvent.Invoke(conn);
 
             m_Connections[conn.ConnectionId] = null;
         }

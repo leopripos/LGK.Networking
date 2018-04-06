@@ -4,19 +4,10 @@ using System;
 using System.Net;
 using UNET = UnityEngine.Networking;
 
-#if NETWORK_PROFILER_ENABLED && UNITY_EDITOR
-using System.Text;
-using LGK.Networking.Profiler;
-#endif
-
 namespace LGK.Networking.LLAPI.Client
 {
     public class ClientPeer : IInternalClientPeer
     {
-#if NETWORK_PROFILER_ENABLED && UNITY_EDITOR
-        const string PROFILER_CATEGORY_PREFIX = "ClientPeer:";
-#endif
-
         private const byte NOTHING_ERROR = 0;
         private const byte LET_OS_SELECT_PORT = 0;
         private const int MAX_EVENT_PER_FRAME = 500;
@@ -106,15 +97,20 @@ namespace LGK.Networking.LLAPI.Client
         public bool Send(int channelId, byte[] buffer, int length)
         {
 #if NETWORK_DEBUGGER_ENABLED
-            UnityEngine.Debug.Log($"ClientPeer Outgoing : ChannelId:{channelId} Size:{length}");
+            var logMessage = new System.Text.StringBuilder("ClientPeer");
+            logMessage.Append(" Outgoing");
+            logMessage.Append(" ChannelId:").Append(channelId);
+            logMessage.Append(" Size:").Append(length);
+
+            UnityEngine.Debug.Log(logMessage);
 #endif
             byte error;
             UNET.NetworkTransport.Send(m_Connection.SocketId, m_Connection.ConnectionId, channelId, buffer, length, out error);
 
 #if NETWORK_PROFILER_ENABLED && UNITY_EDITOR
-            var profilerName = new StringBuilder(PROFILER_CATEGORY_PREFIX);
+            var profilerName = new System.Text.StringBuilder("ClientPeer");
             profilerName.Append(channelId);
-            NetworkProfiler.RecordChannelOutgoing(profilerName.ToString(), (ushort)length);
+            Profiler.NetworkProfiler.RecordChannelOutgoing(profilerName.ToString(), (ushort)length);
 #endif
 
             m_Connection.LastError = (NetworkError)error;
@@ -233,7 +229,8 @@ namespace LGK.Networking.LLAPI.Client
                 Dns.BeginGetHostAddresses(serverAdress, HandleDNSResult, this);
             }
 
-            ConnectingEvent?.Invoke();
+            if(ConnectingEvent != null)
+                ConnectingEvent.Invoke();
         }
 
         void ContinueConnecting()
@@ -251,7 +248,8 @@ namespace LGK.Networking.LLAPI.Client
 
             InternalRemoveHost();
 
-            ConnectingFailedEvent?.Invoke(m_Connection.LastError);
+            if(ConnectingFailedEvent != null)
+                ConnectingFailedEvent.Invoke(m_Connection.LastError);
         }
 
         void HandleConnectEvent()
@@ -260,22 +258,28 @@ namespace LGK.Networking.LLAPI.Client
 
             m_Connection.IsConnected = true;
 
-            ConnectedEvent?.Invoke();
+            if(ConnectedEvent != null)
+                ConnectedEvent.Invoke();
         }
 
         void HandleDataEvent(int channelId, int receivedSize)
         {
 #if NETWORK_DEBUGGER_ENABLED
-            UnityEngine.Debug.Log($"ClientPeer Incoming : ChannelId:{channelId} Size:{receivedSize}");
+            var logMessage = new System.Text.StringBuilder("ClientPeer");
+            logMessage.Append(" Incoming");
+            logMessage.Append(" ChannelId:").Append(channelId);
+            logMessage.Append(" Size:").Append(receivedSize);
+
+            UnityEngine.Debug.Log(logMessage);
 #endif
 
 #if NETWORK_PROFILER_ENABLED && UNITY_EDITOR
-            var profilerName = new StringBuilder(PROFILER_CATEGORY_PREFIX);
+            var profilerName = new System.Text.StringBuilder("ClientPeer");
             profilerName.Append(channelId);
-            NetworkProfiler.RecordChannelIncoming(profilerName.ToString(), (ushort)receivedSize);
+            Profiler.NetworkProfiler.RecordChannelIncoming(profilerName.ToString(), (ushort)receivedSize);
 #endif
-
-            DataEvent?.Invoke(channelId, m_RecievedBuffer, receivedSize);
+            if(DataEvent != null)
+                DataEvent.Invoke(channelId, m_RecievedBuffer, receivedSize);
         }
 
         void HandleDisconnectEvent()
@@ -294,7 +298,8 @@ namespace LGK.Networking.LLAPI.Client
 
                 InternalRemoveHost();
 
-                DisconnectedEvent?.Invoke();
+                if(DisconnectedEvent != null)
+                    DisconnectedEvent.Invoke();
 
             }
         }

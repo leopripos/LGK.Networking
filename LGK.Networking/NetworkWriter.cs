@@ -52,14 +52,10 @@ namespace LGK.Networking
 
         public ushort Position
         {
-            get
-            {
-                return m_Buffer.Position;
-            }
+            get { return m_Buffer.Position; }
         }
 
         // http://sqlite.org/src4/doc/trunk/www/varint.wiki
-
         public void WritePackedUInt32(UInt32 value)
         {
             if (value <= 240)
@@ -350,7 +346,7 @@ namespace LGK.Networking
         internal void BackTo(ushort position)
         {
             if (m_HeaderPosition > position)
-                throw new ArgumentException($"NetworkWriter:SeekPosition is not allowed to seek to position:{position} beacuase headerPosition:{m_HeaderPosition}");
+                throw new ArgumentException("NetworkWriter:SeekPosition is not allowed to seek to position:" + position+ " beacuase headerPosition:" + m_HeaderPosition);
 
             m_Buffer.BackTo(position);
         }
